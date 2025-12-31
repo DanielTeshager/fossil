@@ -29,18 +29,11 @@ import {
 } from './utils/tokenizer.js';
 
 import {
-  selectResurfaceFossil,
   selectContextualResurface,
   getNextDismissDate,
   detectConflicts,
-  calculateStreak,
-  recordResurfaceEngagement
+  calculateStreak
 } from './utils/intelligence.js';
-
-import {
-  findRelatedFossils,
-  suggestConnections
-} from './utils/autolink.js';
 
 import {
   buildGraphData,
@@ -117,9 +110,25 @@ const App = () => {
   const [graphMode, setGraphMode] = useState('view'); // 'view' | 'connect' | 'merge'
   const [connectSource, setConnectSource] = useState(null);
   const [mergeTargets, setMergeTargets] = useState([]);
-  const [manualEdges, setManualEdges] = useState([]); // User-created connections
-  const [nodeAnnotations, setNodeAnnotations] = useState({}); // id -> annotation
   const [editingAnnotation, setEditingAnnotation] = useState(null);
+
+  // Graph edges and annotations are now persisted in data
+  const manualEdges = data.manualEdges || [];
+  const nodeAnnotations = data.nodeAnnotations || {};
+
+  const setManualEdges = useCallback((updater) => {
+    setData(prev => ({
+      ...prev,
+      manualEdges: typeof updater === 'function' ? updater(prev.manualEdges || []) : updater
+    }));
+  }, []);
+
+  const setNodeAnnotations = useCallback((updater) => {
+    setData(prev => ({
+      ...prev,
+      nodeAnnotations: typeof updater === 'function' ? updater(prev.nodeAnnotations || {}) : updater
+    }));
+  }, []);
 
   // Import state
   const fileInputRef = useRef(null);
@@ -224,7 +233,17 @@ const App = () => {
     }));
   }, []);
 
-  // Register keyboard shortcuts
+  // --- Intelligence Engine ---
+
+  const fossilMap = useMemo(() =>
+    Object.fromEntries((data.fossils || []).map(f => [f.id, f])),
+  [data.fossils]);
+
+  const visibleFossils = useMemo(() =>
+    (data.fossils || []).filter(f => !f.deleted),
+  [data.fossils]);
+
+  // Register keyboard shortcuts (after visibleFossils is defined)
   const shortcuts = useMemo(() => ({
     'mod+k': () => setShowCommandPalette(true),
     'mod+n': () => {
@@ -243,16 +262,6 @@ const App = () => {
   }), [showCommandPalette, showQuickCapture, showAISettings, showConflictModal, aiResponse, data.activeProbe, visibleFossils]);
 
   useKeyboardShortcuts(shortcuts);
-
-  // --- Intelligence Engine ---
-  
-  const fossilMap = useMemo(() => 
-    Object.fromEntries((data.fossils || []).map(f => [f.id, f])), 
-  [data.fossils]);
-
-  const visibleFossils = useMemo(() => 
-    (data.fossils || []).filter(f => !f.deleted), 
-  [data.fossils]);
 
   /**
    * Stable Token Index
@@ -343,7 +352,6 @@ const App = () => {
   // Uses contextual resurface to select relevant fossils based on current context
   useEffect(() => {
     if (!todayFossil && !data.activeProbe && visibleFossils.length > 0) {
-      // Use recent intent or last fossil as context for smarter resurface selection
       const context = intent || (visibleFossils.length > 0
         ? visibleFossils.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]?.invariant
         : null);
@@ -1370,10 +1378,11 @@ const App = () => {
       {!data.activeProbe && !todayFossil && visibleFossils.length >= 5 && (
         <ProactiveInsights
           fossils={visibleFossils}
+          kernels={data.kernels || []}
           tokenIndex={fossilTokenIndex}
           onNavigateToFossil={(id) => {
+            setFocusChainIds([id]); // Highlight the specific fossil
             setView('fossils');
-            // Could highlight the fossil
           }}
           onNavigateToGraph={() => setView('graph')}
           onStartProbe={() => document.querySelector('textarea')?.focus()}

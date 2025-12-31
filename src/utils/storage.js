@@ -36,7 +36,10 @@ export const migrate = (parsed) => {
     activeKernelId: parsed?.activeKernelId || null,
     activeProbe: parsed?.activeProbe || null,
     aiConfig,
-    vaultDigest: parsed?.vaultDigest || null
+    vaultDigest: parsed?.vaultDigest || null,
+    // Graph customization state
+    manualEdges: parsed?.manualEdges || [],
+    nodeAnnotations: parsed?.nodeAnnotations || {}
   };
 };
 
@@ -68,7 +71,15 @@ export const loadData = () => {
     return migrated;
   } catch (e) {
     console.error('Load failed:', e);
-    return { fossils: [], kernels: [], activeKernelId: null, activeProbe: null, aiConfig: { ...DEFAULT_AI_CONFIG } };
+    return {
+      fossils: [],
+      kernels: [],
+      activeKernelId: null,
+      activeProbe: null,
+      aiConfig: { ...DEFAULT_AI_CONFIG },
+      manualEdges: [],
+      nodeAnnotations: {}
+    };
   }
 };
 

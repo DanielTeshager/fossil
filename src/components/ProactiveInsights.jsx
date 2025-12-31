@@ -1,17 +1,20 @@
 // --- Proactive Insights Component ---
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Sparkles, Brain, Link2, TrendingUp, AlertTriangle,
-  ChevronRight, X, Lightbulb, GitBranch, Zap, RefreshCw
+  ChevronRight, X, GitBranch, Zap, RefreshCw
 } from 'lucide-react';
-import { tokenize, getJaccard } from '../utils/tokenizer.js';
-import { findRelatedFossils, detectClusters, findBridgeFossils, suggestConnections } from '../utils/autolink.js';
+import { tokenize } from '../utils/tokenizer.js';
+import { detectClusters, findBridgeFossils, suggestConnections } from '../utils/autolink.js';
 
 /**
  * Analyze vault for patterns and insights
+ * @param {Array} fossils - All fossils
+ * @param {Map} tokenIndex - Token index for similarity
+ * @param {Array} kernels - All kernels (to check which fossils are synthesized)
  */
-const analyzeVault = (fossils, tokenIndex) => {
+const analyzeVault = (fossils, tokenIndex, kernels = []) => {
   const validFossils = fossils.filter(f => !f.deleted);
   if (validFossils.length < 3) return null;
 
@@ -50,10 +53,17 @@ const analyzeVault = (fossils, tokenIndex) => {
   }
 
   // 2. Synthesis Readiness
+  // Build set of fossil IDs that are already in kernels
+  const synthesizedIds = new Set();
+  kernels.forEach(k => {
+    (k.fossilIds || []).forEach(id => synthesizedIds.add(id));
+  });
+
   const clusters = detectClusters(validFossils, tokenIndex, { minClusterSize: 3 });
   const unsyntheized = clusters.filter(c => {
-    // Check if any fossils in cluster have been kernelized
-    return !c.fossils.some(f => f.kernelId);
+    // Check if majority of fossils in cluster are NOT synthesized
+    const unsynthCount = c.fossils.filter(f => !synthesizedIds.has(f.id)).length;
+    return unsynthCount >= c.fossils.length * 0.5; // At least 50% unsynthesized
   });
 
   if (unsyntheized.length > 0 && unsyntheized[0].size >= 4) {
@@ -136,6 +146,7 @@ const analyzeVault = (fossils, tokenIndex) => {
  */
 export const ProactiveInsights = ({
   fossils = [],
+  kernels = [],
   tokenIndex = new Map(),
   onNavigateToFossil,
   onNavigateToGraph,
@@ -148,10 +159,11 @@ export const ProactiveInsights = ({
   const [expanded, setExpanded] = useState(!compact);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Analyze vault for insights
+  // Analyze vault for insights (memoized to avoid O(n²) on every render)
   const insights = useMemo(() => {
-    return analyzeVault(fossils, tokenIndex) || [];
-  }, [fossils, tokenIndex, refreshKey]);
+    // Only recompute when fossils/kernels actually change, not on every render
+    return analyzeVault(fossils, tokenIndex, kernels) || [];
+  }, [fossils, tokenIndex, kernels, refreshKey]);
 
   // Filter out dismissed insights
   const activeInsights = insights.filter(i => !dismissed.has(i.title));
