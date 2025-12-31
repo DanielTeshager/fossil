@@ -138,6 +138,161 @@ export const detectConflicts = (newInvariant, existingFossils, tokenIndex) => {
 };
 
 /**
+ * Smart resurface with context matching - resurface related ideas together
+ */
+export const selectContextualResurface = (fossils, tokenIndex, currentContext = null, todayKey) => {
+  const now = new Date();
+  const eligible = fossils.filter(f =>
+    !f.deleted &&
+    f.dayKey !== todayKey &&
+    (!f.dismissedUntil || new Date(f.dismissedUntil) <= now) &&
+    !f.supersededBy
+  );
+
+  if (eligible.length === 0) return null;
+
+  // Score all eligible fossils
+  let scored = eligible.map(f => ({
+    fossil: f,
+    decayScore: calculateDecayScore(f, fossils),
+    contextScore: 0,
+    engagementScore: calculateEngagementScore(f)
+  })).filter(s => s.decayScore > -900);
+
+  if (scored.length === 0) return null;
+
+  // If we have context (e.g., current probe intent or recent fossil), boost related ones
+  if (currentContext) {
+    const contextTokens = tokenize(currentContext);
+    scored = scored.map(s => {
+      const fossilTokens = tokenIndex.get(s.fossil.id) || tokenize(s.fossil.invariant || '');
+      const similarity = getJaccard(contextTokens, fossilTokens);
+      return {
+        ...s,
+        contextScore: similarity * 2 // Boost contextually relevant fossils
+      };
+    });
+  }
+
+  // Combined score: decay + context + engagement
+  scored = scored.map(s => ({
+    ...s,
+    totalScore: s.decayScore + s.contextScore + s.engagementScore
+  }));
+
+  const sorted = scored.sort((a, b) => b.totalScore - a.totalScore);
+  const top5 = sorted.slice(0, 5);
+
+  // Weighted random from top candidates
+  const totalWeight = top5.reduce((sum, s) => sum + Math.exp(s.totalScore), 0);
+  let random = Math.random() * totalWeight;
+
+  for (const item of top5) {
+    random -= Math.exp(item.totalScore);
+    if (random <= 0) return item.fossil;
+  }
+
+  return top5[0]?.fossil || null;
+};
+
+/**
+ * Calculate engagement score based on user interaction history
+ */
+export const calculateEngagementScore = (fossil) => {
+  let score = 0;
+
+  // Positive engagement signals
+  if (fossil.reinforceCount > 0) score += fossil.reinforceCount * 0.3;
+  if (fossil.reuseCount > 0) score += fossil.reuseCount * 0.2;
+  if (fossil.quality >= 4) score += 0.2;
+
+  // Negative engagement signals
+  if (fossil.dismissCount > 2) score -= 0.3;
+  if (fossil.skipCount > 3) score -= 0.2;
+
+  // Time-based engagement (fossils engaged with at similar times)
+  const hour = new Date().getHours();
+  if (fossil.lastRevisitedAt) {
+    const lastHour = new Date(fossil.lastRevisitedAt).getHours();
+    // Small boost if previously engaged at similar time of day
+    if (Math.abs(hour - lastHour) <= 2) score += 0.1;
+  }
+
+  return score;
+};
+
+/**
+ * Get resurface batch - multiple related fossils to review together
+ */
+export const getResurfaceBatch = (fossils, tokenIndex, batchSize = 3) => {
+  const todayKey = getDayKey();
+  const batch = [];
+
+  // Get first fossil using standard selection
+  const first = selectResurfaceFossil(fossils, todayKey);
+  if (!first) return batch;
+
+  batch.push(first);
+
+  // Find related fossils for context
+  const firstTokens = tokenIndex.get(first.id) || tokenize(first.invariant || '');
+
+  const now = new Date();
+  const candidates = fossils.filter(f =>
+    !f.deleted &&
+    f.id !== first.id &&
+    f.dayKey !== todayKey &&
+    (!f.dismissedUntil || new Date(f.dismissedUntil) <= now) &&
+    !f.supersededBy
+  );
+
+  const related = candidates
+    .map(f => {
+      const tokens = tokenIndex.get(f.id) || tokenize(f.invariant || '');
+      return {
+        fossil: f,
+        similarity: getJaccard(firstTokens, tokens)
+      };
+    })
+    .filter(r => r.similarity > 0.15 && r.similarity < 0.7)
+    .sort((a, b) => b.similarity - a.similarity);
+
+  // Add related fossils to batch
+  for (const r of related) {
+    if (batch.length >= batchSize) break;
+    batch.push(r.fossil);
+  }
+
+  return batch;
+};
+
+/**
+ * Record resurface engagement for learning
+ */
+export const recordResurfaceEngagement = (fossil, action) => {
+  const updates = {
+    lastRevisitedAt: new Date().toISOString()
+  };
+
+  switch (action) {
+    case 'reinforce':
+      updates.reinforceCount = (fossil.reinforceCount || 0) + 1;
+      break;
+    case 'reentry':
+      updates.reuseCount = (fossil.reuseCount || 0) + 1;
+      break;
+    case 'dismiss':
+      updates.dismissCount = (fossil.dismissCount || 0) + 1;
+      break;
+    case 'skip':
+      updates.skipCount = (fossil.skipCount || 0) + 1;
+      break;
+  }
+
+  return updates;
+};
+
+/**
  * Calculate current streak and stats
  */
 export const calculateStreak = (fossils) => {

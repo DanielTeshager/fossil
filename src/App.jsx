@@ -30,10 +30,17 @@ import {
 
 import {
   selectResurfaceFossil,
+  selectContextualResurface,
   getNextDismissDate,
   detectConflicts,
-  calculateStreak
+  calculateStreak,
+  recordResurfaceEngagement
 } from './utils/intelligence.js';
+
+import {
+  findRelatedFossils,
+  suggestConnections
+} from './utils/autolink.js';
 
 import {
   buildGraphData,
@@ -69,6 +76,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
 // --- Component Imports ---
 import { CommandPalette } from './components/CommandPalette.jsx';
 import { QuickCapture } from './components/QuickCapture.jsx';
+import { ProactiveInsights } from './components/ProactiveInsights.jsx';
 
 // --- Main App ---
 const App = () => {
@@ -332,14 +340,19 @@ const App = () => {
   }, [view, visibleFossils, fossilTokenIndex, manualEdges]);
 
   // Compute resurface fossil on mount and when fossils change
+  // Uses contextual resurface to select relevant fossils based on current context
   useEffect(() => {
     if (!todayFossil && !data.activeProbe && visibleFossils.length > 0) {
-      const candidate = selectResurfaceFossil(data.fossils, todayKey);
+      // Use recent intent or last fossil as context for smarter resurface selection
+      const context = intent || (visibleFossils.length > 0
+        ? visibleFossils.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]?.invariant
+        : null);
+      const candidate = selectContextualResurface(data.fossils, fossilTokenIndex, context, todayKey);
       setResurfaceFossil(candidate);
     } else {
       setResurfaceFossil(null);
     }
-  }, [data.fossils, data.activeProbe, todayFossil, todayKey, visibleFossils.length]);
+  }, [data.fossils, data.activeProbe, todayFossil, todayKey, visibleFossils.length, intent, fossilTokenIndex]);
 
   const getTrail = useCallback((f) => {
     const trail = [];
@@ -1351,6 +1364,22 @@ const App = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Proactive Insights */}
+      {!data.activeProbe && !todayFossil && visibleFossils.length >= 5 && (
+        <ProactiveInsights
+          fossils={visibleFossils}
+          tokenIndex={fossilTokenIndex}
+          onNavigateToFossil={(id) => {
+            setView('fossils');
+            // Could highlight the fossil
+          }}
+          onNavigateToGraph={() => setView('graph')}
+          onStartProbe={() => document.querySelector('textarea')?.focus()}
+          aiConfig={data.aiConfig}
+          onRequestAIInsight={handleAIInsightSpark}
+        />
       )}
 
       {/* Resurface Prompt */}

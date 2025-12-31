@@ -7,7 +7,7 @@ import { getDayKey } from './helpers.js';
  */
 export const exportVaultJSON = (data) => {
   const exportData = {
-    version: '2.0.0',
+    version: '2.2.0',
     exportedAt: new Date().toISOString(),
     ...data
   };

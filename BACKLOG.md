@@ -13,10 +13,10 @@
 ### F1. Split Monolith into Components
 - [ ] Extract reusable UI components (Button, Modal, Card, Input)
 - [ ] Extract view components (TodayView, ArchiveView, HarvestView, GraphView)
-- [ ] Extract hooks (useDebounce, useLocalStorage, useFossilData)
-- [ ] Extract utilities (tokenizer, similarity, graph algorithms)
-- [ ] Extract AI service layer
-- [ ] Proper folder structure: `/components`, `/hooks`, `/utils`, `/services`
+- [x] Extract hooks (useDebounce, useKeyboardShortcuts)
+- [x] Extract utilities (tokenizer, similarity, graph algorithms, helpers, constants)
+- [x] Extract AI service layer
+- [x] Proper folder structure: `/components`, `/hooks`, `/utils`, `/services`
 
 ### F2. TypeScript Migration
 - [ ] Add TypeScript configuration
@@ -49,24 +49,24 @@
 ## P1: Zero Friction (High Impact)
 
 ### Z1. Keyboard-First Navigation
-- [ ] Global shortcuts: `Cmd+N` new probe, `Cmd+K` command palette
+- [x] Global shortcuts: `Cmd+N` new probe, `Cmd+K` command palette
 - [ ] Vim-style navigation in lists (`j/k`)
-- [ ] `Escape` to close any modal
-- [ ] `Cmd+Enter` to submit any form
+- [x] `Escape` to close any modal
+- [x] `Cmd+Enter` to submit any form
 - [ ] `Tab` flow optimized for rapid entry
 
 ### Z2. Quick Capture Mode
-- [ ] Floating action button for instant capture
-- [ ] Minimal UI mode - just invariant + one primitive
-- [ ] Expand to full mode if needed
+- [x] Floating action button for instant capture
+- [x] Minimal UI mode - just invariant + one primitive
+- [x] Expand to full mode if needed
 - [ ] Auto-save drafts
 
 ### Z3. Command Palette
-- [ ] `Cmd+K` opens palette
-- [ ] Fuzzy search all fossils
-- [ ] Quick actions: new probe, search, settings, export
+- [x] `Cmd+K` opens palette
+- [x] Fuzzy search all fossils
+- [x] Quick actions: new probe, search, settings, export
 - [ ] Recent fossils
-- [ ] AI actions accessible
+- [x] AI actions accessible
 
 ### Z4. Share Sheet / Import
 - [ ] Accept shared text from other apps
@@ -84,10 +84,10 @@
 ## P2: Intelligence (Smart Features)
 
 ### I1. Proactive AI Insights
-- [ ] Daily digest: "3 fossils relate to X"
-- [ ] Tension detection: "These 2 ideas may conflict"
-- [ ] Pattern recognition: "You've probed Y topic 5 times"
-- [ ] Synthesis suggestions: "Ready to form a kernel?"
+- [x] Daily digest: "3 fossils relate to X"
+- [x] Tension detection: "These 2 ideas may conflict"
+- [x] Pattern recognition: "You've probed Y topic 5 times"
+- [x] Synthesis suggestions: "Ready to form a kernel?"
 
 ### I2. Contextual Prompts
 - [ ] Time-based prompts (morning review, evening capture)
@@ -96,16 +96,16 @@
 - [ ] Quality patterns: "Your best fossils happen on..."
 
 ### I3. Smart Resurface
-- [ ] Learn when user is receptive (time, frequency)
-- [ ] Weight by engagement (did they act on last resurface?)
-- [ ] Context matching (resurface related ideas together)
+- [x] Learn when user is receptive (time, frequency)
+- [x] Weight by engagement (did they act on last resurface?)
+- [x] Context matching (resurface related ideas together)
 - [ ] Difficulty progression (start easy, increase challenge)
 
 ### I4. Auto-Linking
-- [ ] Automatically detect related fossils
-- [ ] Suggest connections in graph view
-- [ ] Build knowledge clusters
-- [ ] Surface cross-domain insights
+- [x] Automatically detect related fossils
+- [x] Suggest connections in graph view
+- [x] Build knowledge clusters
+- [x] Surface cross-domain insights
 
 ### I5. Voice Capture
 - [ ] Press and hold to speak
