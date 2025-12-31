@@ -763,7 +763,8 @@ const App = () => {
   }, []);
 
   const handleAIInsightSpark = useCallback(async () => {
-    if (!data.aiConfig?.enabled || !data.aiConfig?.apiKey) {
+    const requiresKey = data.aiConfig?.provider !== 'ollama';
+    if (!data.aiConfig?.enabled || (requiresKey && !data.aiConfig?.apiKey)) {
       setShowAISettings(true);
       return;
     }
@@ -800,7 +801,8 @@ const App = () => {
   }, [data.aiConfig, data.fossils, updateAIConfig]);
 
   const handleAIProbeSuggestion = useCallback(async () => {
-    if (!data.aiConfig?.enabled || !data.aiConfig?.apiKey) {
+    const requiresKey = data.aiConfig?.provider !== 'ollama';
+    if (!data.aiConfig?.enabled || (requiresKey && !data.aiConfig?.apiKey)) {
       setShowAISettings(true);
       return;
     }
@@ -839,7 +841,8 @@ const App = () => {
   }, [data.aiConfig, data.fossils, visibleFossils, updateAIConfig]);
 
   const handleAISynthesis = useCallback(async (weekFossils) => {
-    if (!data.aiConfig?.enabled || !data.aiConfig?.apiKey) {
+    const requiresKey = data.aiConfig?.provider !== 'ollama';
+    if (!data.aiConfig?.enabled || (requiresKey && !data.aiConfig?.apiKey)) {
       setShowAISettings(true);
       return;
     }
@@ -2404,13 +2407,14 @@ const App = () => {
     <div className="min-h-screen bg-black text-zinc-400 font-mono selection:bg-emerald-500/20 antialiased">
       {Header()}
       <main className="min-h-[calc(100vh-120px)]">
-        {view === 'today' && TodayView()}
-        {view === 'fossils' && ArchiveView()}
-        {view === 'graph' && GraphView()}
-        {view === 'harvest' && HarvestView()}
-      </main>
+      {view === 'today' && TodayView()}
+      {view === 'fossils' && ArchiveView()}
+      {view === 'graph' && GraphView()}
+      {view === 'harvest' && HarvestView()}
+    </main>
       {ConflictModal()}
       {AISettingsModal()}
+      {AIResponseModal()}
 
       {/* Command Palette */}
       <CommandPalette

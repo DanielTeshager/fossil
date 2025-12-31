@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Sparkles, Brain, Link2, TrendingUp, AlertTriangle,
-  ChevronRight, X, GitBranch, Zap, RefreshCw
+  ChevronRight, X, GitBranch, Zap, RefreshCw, Lightbulb
 } from 'lucide-react';
 import { tokenize } from '../utils/tokenizer.js';
 import { detectClusters, findBridgeFossils, suggestConnections } from '../utils/autolink.js';
