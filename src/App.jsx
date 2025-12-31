@@ -3086,10 +3086,10 @@ const App = () => {
     <div className="min-h-screen bg-black text-zinc-400 font-mono selection:bg-emerald-500/20 antialiased">
       <Header />
       <main className="min-h-[calc(100vh-120px)]">
-        {view === 'today' && <TodayView />}
-        {view === 'fossils' && <ArchiveView />}
-        {view === 'graph' && <GraphView />}
-        {view === 'harvest' && <HarvestView />}
+        {view === 'today' && TodayView()}
+        {view === 'fossils' && ArchiveView()}
+        {view === 'graph' && GraphView()}
+        {view === 'harvest' && HarvestView()}
       </main>
       <ConflictModal />
       <footer className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-zinc-900 py-3 px-6 flex justify-between items-center text-[9px] font-mono tracking-tighter text-zinc-600 z-50">
