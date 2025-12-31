@@ -64,6 +64,11 @@ import {
 
 // --- Hook Imports ---
 import { useDebounce } from './hooks/useDebounce.js';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
+
+// --- Component Imports ---
+import { CommandPalette } from './components/CommandPalette.jsx';
+import { QuickCapture } from './components/QuickCapture.jsx';
 
 // --- Main App ---
 const App = () => {
@@ -120,6 +125,10 @@ const App = () => {
   const [ollamaModels, setOllamaModels] = useState([]);
   const [aiTestStatus, setAiTestStatus] = useState(null); // { success, error?, warning? }
 
+  // Command Palette & Quick Capture state
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
+
   // Debounced intent for re-entry detection
   const debouncedIntent = useDebounce(intent, DEBOUNCE_MS);
 
@@ -157,6 +166,75 @@ const App = () => {
       }
     };
   }, [data.activeProbe]);
+
+  // --- Keyboard Shortcuts ---
+  const handleCommandPaletteAction = useCallback((action, payload) => {
+    switch (action) {
+      case 'navigate':
+        setView(payload);
+        setShowCommandPalette(false);
+        break;
+      case 'newProbe':
+        setView('today');
+        setShowCommandPalette(false);
+        break;
+      case 'quickCapture':
+        setShowQuickCapture(true);
+        setShowCommandPalette(false);
+        break;
+      case 'aiInsight':
+        handleAIInsightSpark();
+        setShowCommandPalette(false);
+        break;
+      case 'aiProbe':
+        handleAIProbeSuggestion();
+        setShowCommandPalette(false);
+        break;
+      case 'export':
+        exportVaultJSON(data);
+        setShowCommandPalette(false);
+        break;
+      case 'settings':
+        setShowAISettings(true);
+        setShowCommandPalette(false);
+        break;
+      case 'viewFossil':
+        setView('fossils');
+        setSearchQuery(payload.invariant.slice(0, 20));
+        setShowCommandPalette(false);
+        break;
+      default:
+        break;
+    }
+  }, [data]);
+
+  const handleQuickCapture = useCallback((fossil) => {
+    setData(prev => ({
+      ...prev,
+      fossils: [fossil, ...prev.fossils],
+      activeProbe: null
+    }));
+  }, []);
+
+  // Register keyboard shortcuts
+  const shortcuts = useMemo(() => ({
+    'mod+k': () => setShowCommandPalette(true),
+    'mod+n': () => {
+      if (!data.activeProbe && !visibleFossils.find(f => f.dayKey === getDayKey())) {
+        setView('today');
+      }
+    },
+    'mod+shift+n': () => setShowQuickCapture(true),
+    'escape': () => {
+      if (showCommandPalette) setShowCommandPalette(false);
+      else if (showQuickCapture) setShowQuickCapture(false);
+      else if (showAISettings) setShowAISettings(false);
+      else if (showConflictModal) setShowConflictModal(false);
+      else if (aiResponse) setAiResponse(null);
+    },
+  }), [showCommandPalette, showQuickCapture, showAISettings, showConflictModal, aiResponse, data.activeProbe, visibleFossils]);
+
+  useKeyboardShortcuts(shortcuts);
 
   // --- Intelligence Engine ---
   
@@ -2295,6 +2373,24 @@ const App = () => {
       </main>
       {ConflictModal()}
       {AISettingsModal()}
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        fossils={data.fossils}
+        onAction={handleCommandPaletteAction}
+        currentView={view}
+      />
+
+      {/* Quick Capture */}
+      <QuickCapture
+        isOpen={showQuickCapture}
+        onClose={() => setShowQuickCapture(false)}
+        onCapture={handleQuickCapture}
+        existingProbe={data.activeProbe}
+      />
+
       <footer className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-zinc-900 py-3 px-6 flex justify-between items-center text-[9px] font-mono tracking-tighter text-zinc-600 z-50">
         <div className="flex gap-6">
           <span className="flex items-center gap-1.5">
@@ -2317,7 +2413,14 @@ const App = () => {
           }`}>
             {todayFossil ? 'STATION_LOCKED' : 'STATION_OPEN'}
           </div>
-          <span className="opacity-40">FOSSIL v2.0.0_INTELLIGENCE</span>
+          <button
+            onClick={() => setShowCommandPalette(true)}
+            className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded border border-zinc-800 hover:border-zinc-700 hover:text-zinc-400 transition-colors"
+            title="Command Palette"
+          >
+            <span>⌘K</span>
+          </button>
+          <span className="opacity-40">FOSSIL v2.1.0</span>
         </div>
       </footer>
     </div>
