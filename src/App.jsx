@@ -995,6 +995,40 @@ const App = () => {
     calculateStreak(data.fossils || []),
   [data.fossils]);
 
+  // Harvest view data
+  const last7DaysFossils = useMemo(() => visibleFossils.filter(f => {
+    const ts = new Date(f.createdAt || f.date).getTime();
+    return !isNaN(ts) && (Date.now() - ts < 7 * 24 * 60 * 60 * 1000);
+  }), [visibleFossils]);
+
+  const rankedCandidates = useMemo(() => {
+    return last7DaysFossils.map(f => {
+      let score = (f.quality || 2) * 2;
+      score += (f.reuseCount || 0) * 3;
+      return { ...f, score };
+    }).sort((a, b) => b.score - a.score).slice(0, 5);
+  }, [last7DaysFossils]);
+
+  const sealKernel = useCallback(() => {
+    const id = generateId();
+    const newKernel = {
+      id,
+      date: new Date().toISOString(),
+      ...kernelInProgress,
+      fossilIds: last7DaysFossils.map(f => f.id)
+    };
+    setData(prev => ({
+      ...prev,
+      kernels: [newKernel, ...prev.kernels],
+      activeKernelId: id
+    }));
+    setKernelInProgress({
+      invariant: '',
+      counterpoint: '',
+      nextDirection: ''
+    });
+  }, [kernelInProgress, last7DaysFossils]);
+
   // Compute graph data (lazy - only when on graph view)
   const graphData = useMemo(() => {
     if (view !== 'graph') return null;
@@ -2489,38 +2523,6 @@ const App = () => {
 
   const HarvestView = () => {
     const isFriday = new Date().getDay() === 5;
-    const last7DaysFossils = useMemo(() => visibleFossils.filter(f => {
-      const ts = new Date(f.createdAt || f.date).getTime();
-      return !isNaN(ts) && (Date.now() - ts < 7 * 24 * 60 * 60 * 1000);
-    }), [visibleFossils]);
-
-    const rankedCandidates = useMemo(() => {
-      return last7DaysFossils.map(f => {
-        let score = (f.quality || 2) * 2;
-        score += (f.reuseCount || 0) * 3;
-        return { ...f, score };
-      }).sort((a, b) => b.score - a.score).slice(0, 5);
-    }, [last7DaysFossils]);
-
-    const sealKernel = useCallback(() => {
-      const id = generateId();
-      const newKernel = { 
-        id, 
-        date: new Date().toISOString(), 
-        ...kernelInProgress, 
-        fossilIds: last7DaysFossils.map(f => f.id) 
-      };
-      setData(prev => ({ 
-        ...prev, 
-        kernels: [newKernel, ...prev.kernels], 
-        activeKernelId: id 
-      }));
-      setKernelInProgress({ 
-        invariant: '', 
-        counterpoint: '', 
-        nextDirection: '' 
-      });
-    }, [kernelInProgress, last7DaysFossils]);
 
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-8">
