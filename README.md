@@ -113,6 +113,8 @@ npm run deploy
 - API keys stored locally (never transmitted except to chosen provider)
 - Export/import in JSON or Markdown
 - No accounts, no tracking, no server
+- Seed data for demos: import `seed-vault.json`
+- Guidebook: see `FOSSIL_BIBLE.md`
 
 ---
 
