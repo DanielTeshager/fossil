@@ -2118,18 +2118,15 @@ const App = () => {
                 ))}
               </div>
             </div>
-            <textarea
-              className="w-full bg-black border border-zinc-800 rounded-xl p-5 font-mono text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none placeholder-zinc-800 text-lg leading-snug resize-none"
+            <textarea 
+              className="w-full bg-black border border-zinc-800 rounded-xl p-5 font-mono text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none placeholder-zinc-800 text-lg leading-snug"
               placeholder="What are you probing today?"
               rows={3}
               value={intent}
               onChange={(e) => setIntent(e.target.value)}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
             />
             {reentryWarning && (
-              <div className="flex items-start gap-3 p-4 bg-amber-950/10 border border-amber-900/30 rounded-xl text-amber-200 text-xs font-mono">
+              <div className="flex items-start gap-3 p-4 bg-amber-950/10 border border-amber-900/30 rounded-xl text-amber-200 text-xs font-mono animate-pulse">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <div>
                   <span className="text-amber-500 font-bold uppercase tracking-tighter flex items-center gap-2">
