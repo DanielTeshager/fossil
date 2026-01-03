@@ -43,7 +43,11 @@ import {
 import {
   loadData,
   saveData,
-  migrate
+  migrate,
+  initStorage,
+  loadDataAsync,
+  saveDataAsync,
+  getDefaultData
 } from './utils/storage.js';
 
 import {
@@ -78,18 +82,30 @@ import { GraphView } from './views/GraphView.jsx';
 
 // --- Main App ---
 const App = () => {
-  const [data, setData] = useState(() => loadData());
+  const [data, setData] = useState(() => loadData()); // Sync load for initial render
+  const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState('today');
   const [searchQuery, setSearchQuery] = useState('');
-  const [focusChainIds, setFocusChainIds] = useState(null); 
+  const [focusChainIds, setFocusChainIds] = useState(null);
   const [now, setNow] = useState(Date.now());
-  const [mode, setMode] = useState('standard'); 
-  
-  const [kernelInProgress, setKernelInProgress] = useState({ 
-    invariant: '', 
-    counterpoint: '', 
-    nextDirection: '' 
+  const [mode, setMode] = useState('standard');
+
+  const [kernelInProgress, setKernelInProgress] = useState({
+    invariant: '',
+    counterpoint: '',
+    nextDirection: ''
   });
+
+  // Initialize IndexedDB and load data async
+  useEffect(() => {
+    const init = async () => {
+      await initStorage();
+      const loadedData = await loadDataAsync();
+      setData(loadedData);
+      setIsLoading(false);
+    };
+    init();
+  }, []);
 
   // Form State
   const [intent, setIntent] = useState('');
@@ -157,10 +173,12 @@ const App = () => {
   // Refs for cleanup
   const timerRef = useRef(null);
 
-  // Persistence
+  // Persistence (async to IndexedDB)
   useEffect(() => {
-    saveData(data);
-  }, [data]);
+    if (!isLoading) {
+      saveDataAsync(data);
+    }
+  }, [data, isLoading]);
 
   // UI Cleanup: Clear chain view on tab switch
   useEffect(() => {
@@ -1431,6 +1449,18 @@ const App = () => {
       </div>
     );
   };
+
+  // Loading screen
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
+          <div className="text-zinc-600 font-mono text-sm">Loading vault...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-zinc-400 font-mono selection:bg-emerald-500/20 antialiased">

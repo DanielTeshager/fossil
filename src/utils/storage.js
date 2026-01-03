@@ -2,6 +2,7 @@
 
 import { STORAGE_KEY, LEGACY_KEYS, DEFAULT_AI_CONFIG } from './constants.js';
 import { getDayKey } from './helpers.js';
+import { initDB, saveToIDB, loadFromIDB, migrateToIDB } from '../services/indexeddb.js';
 
 /**
  * Migrate data structure to latest version
@@ -84,7 +85,7 @@ export const loadData = () => {
 };
 
 /**
- * Save data to localStorage
+ * Save data to localStorage (sync fallback)
  */
 export const saveData = (data) => {
   try {
@@ -93,3 +94,88 @@ export const saveData = (data) => {
     console.error("Save failed", e);
   }
 };
+
+// --- Async Storage (IndexedDB with localStorage fallback) ---
+
+let dbInitialized = false;
+
+/**
+ * Initialize storage (call once on app start)
+ */
+export const initStorage = async () => {
+  if (dbInitialized) return;
+
+  await initDB();
+  dbInitialized = true;
+
+  // Migrate existing localStorage data to IndexedDB
+  await migrateToIDB(STORAGE_KEY);
+};
+
+/**
+ * Load data from IndexedDB (async)
+ */
+export const loadDataAsync = async () => {
+  try {
+    // Try IndexedDB first
+    let saved = await loadFromIDB(STORAGE_KEY);
+
+    // Fallback to localStorage for legacy data
+    if (!saved) {
+      saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        saved = JSON.parse(saved);
+      }
+    }
+
+    // Check legacy keys
+    if (!saved) {
+      for (const key of LEGACY_KEYS) {
+        const legacy = localStorage.getItem(key);
+        if (legacy) {
+          saved = JSON.parse(legacy);
+          break;
+        }
+      }
+    }
+
+    const migrated = migrate(saved);
+
+    // Day-lock the persisted probe
+    if (migrated.activeProbe &&
+        getDayKey(new Date(migrated.activeProbe.startTime)) !== getDayKey()) {
+      migrated.activeProbe = null;
+    }
+
+    return migrated;
+  } catch (e) {
+    console.error('Load failed:', e);
+    return getDefaultData();
+  }
+};
+
+/**
+ * Save data to IndexedDB (async)
+ */
+export const saveDataAsync = async (data) => {
+  try {
+    await saveToIDB(STORAGE_KEY, data);
+    // Also save to localStorage as backup
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Save failed", e);
+  }
+};
+
+/**
+ * Get default empty data structure
+ */
+export const getDefaultData = () => ({
+  fossils: [],
+  kernels: [],
+  activeKernelId: null,
+  activeProbe: null,
+  aiConfig: { ...DEFAULT_AI_CONFIG },
+  manualEdges: [],
+  nodeAnnotations: {}
+});
